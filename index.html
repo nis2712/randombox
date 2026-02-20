@@ -1,0 +1,1131 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Surprise Box</title>
+<style>
+  :root{
+    /* Palette (70% Broken White, 20% Beige, 10% Charcoal) */
+    --broken:#F7F5F0;
+    --beige:#D8C3A5;
+    --charcoal:#2E2E2E;
+
+    --card:#FFFFFF;
+    --border: rgba(46,46,46,.14);
+    --shadow: 0 18px 40px rgba(46,46,46,.12);
+    --shadow2: 0 10px 22px rgba(46,46,46,.10);
+
+    --radius: 18px;
+    --radius2: 22px;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Liberation Sans", sans-serif;
+    background:
+      radial-gradient(1200px 700px at 15% 0%, rgba(216,195,165,.35), rgba(0,0,0,0) 55%),
+      radial-gradient(1000px 600px at 95% 10%, rgba(216,195,165,.22), rgba(0,0,0,0) 60%),
+      linear-gradient(180deg, var(--broken), var(--broken));
+    color:var(--charcoal);
+    overflow-x:hidden;
+  }
+  body.modal-open{ overflow:hidden; }
+
+  .wrap{
+    width:min(1040px, 94vw);
+    margin:24px auto 40px;
+  }
+
+  /* Header */
+  .hero{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    align-items:center;
+    text-align:center;
+    padding:18px 12px 6px;
+  }
+  .title{
+    margin:0;
+    font-weight:900;
+    letter-spacing:.3px;
+    font-size: clamp(22px, 2.6vw, 34px);
+    color:var(--charcoal);
+    display:flex;
+    align-items:center;
+    gap:10px;
+    user-select:none;
+  }
+  .title .pill{
+    font-size:12px;
+    font-weight:900;
+    padding:6px 10px;
+    border-radius:999px;
+    background: rgba(216,195,165,.35);
+    border:1px solid rgba(46,46,46,.12);
+  }
+  .sub{
+    margin:0;
+    font-weight:700;
+    opacity:.82;
+    font-size:13px;
+  }
+
+  /* Controls */
+  .controls{
+    margin-top:10px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    justify-content:center;
+  }
+  .btn{
+    border:1px solid var(--border);
+    background: rgba(255,255,255,.85);
+    backdrop-filter: blur(6px);
+    padding:10px 14px;
+    border-radius: 999px;
+    font-weight:900;
+    cursor:pointer;
+    box-shadow: var(--shadow2);
+    transition: transform .15s ease, filter .15s ease, background .15s ease;
+    color:var(--charcoal);
+  }
+  .btn:hover{ transform: translateY(-1px); filter: brightness(1.02); }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; transform:none; filter:none; }
+
+  .mode{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:center;
+    padding:4px;
+    border-radius: 999px;
+    background: rgba(216,195,165,.22);
+    border:1px solid rgba(46,46,46,.10);
+  }
+  .mode .btn{
+    box-shadow:none;
+    border:1px solid rgba(46,46,46,.10);
+    background: rgba(247,245,240,.9);
+  }
+  .mode .btn.active{
+    background: rgba(46,46,46,.92);
+    color: var(--broken);
+    border-color: rgba(46,46,46,.92);
+  }
+
+  /* Main card */
+  .card{
+    margin: 18px auto 0;
+    background: rgba(255,255,255,.72);
+    border:1px solid rgba(46,46,46,.10);
+    border-radius: var(--radius2);
+    box-shadow: var(--shadow);
+    padding: 16px;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(5, 112px);
+    gap:14px;
+    justify-content:center;
+    padding: 10px 6px 16px;
+    position:relative;
+  }
+  @media (max-width: 640px){
+    .grid{ grid-template-columns: repeat(3, 108px); }
+  }
+
+  .box{
+    background: rgba(247,245,240,.95);
+    border:1px solid rgba(46,46,46,.14);
+    border-radius: 18px;
+    padding: 12px 10px;
+    cursor:pointer;
+    box-shadow: 0 10px 20px rgba(46,46,46,.10);
+    transition: transform .15s ease, filter .15s ease;
+    min-height: 96px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    position:relative;
+    transform: translateZ(0);
+  }
+  .box:hover{ transform: translateY(-2px); filter: brightness(1.01); }
+  .box.disabled{ cursor:not-allowed; }
+  .box.disabled:hover{ transform:none; filter:none; }
+
+  .num{
+    font-size:16px;
+    font-weight:900;
+    opacity:.9;
+  }
+  .gift{
+    margin-top:10px;
+    display:none;
+    width:100%;
+    text-align:center;
+  }
+  .giftImg{
+    width:56px;
+    height:56px;
+    object-fit:contain;
+    filter: drop-shadow(0 8px 14px rgba(46,46,46,.18));
+    opacity:0;
+    transform: translateY(6px) scale(.98);
+  }
+  .giftName{
+    margin-top:6px;
+    font-size:12px;
+    font-weight:900;
+    opacity:0;
+    transform: translateY(6px);
+  }
+
+  .box.revealed{ background: rgba(216,195,165,.18); }
+  .box.revealed .gift{ display:block; }
+
+  .box.revealed .giftImg,
+  .box.revealed .giftName{
+    animation: revealPop .42s cubic-bezier(.2,.85,.2,1) forwards;
+    animation-delay: var(--d);
+    will-change: transform, opacity;
+  }
+  @keyframes revealPop{ to{ opacity:1; transform: translateY(0) scale(1); } }
+
+  .box.picked{
+    outline:3px solid rgba(46,46,46,.85);
+    box-shadow: 0 12px 26px rgba(46,46,46,.18);
+  }
+  .tag{
+    position:absolute;
+    top:10px; right:10px;
+    background: rgba(46,46,46,.92);
+    color: var(--broken);
+    font-weight:900;
+    font-size:11px;
+    padding:4px 8px;
+    border-radius:999px;
+    display:none;
+  }
+  .box.picked .tag{ display:block; }
+
+  /* Popup */
+  .popup{
+    position:fixed;
+    inset:0;
+    background: rgba(46,46,46,.52);
+    display:none;
+    justify-content:center;
+    align-items:center;
+    padding:16px;
+    z-index:50;
+  }
+  .popupContent{
+    background: rgba(247,245,240,.98);
+    border:1px solid rgba(46,46,46,.14);
+    border-radius: 24px;
+    max-width:520px;
+    width:100%;
+    box-shadow: 0 20px 54px rgba(0,0,0,.35);
+    padding: 18px 16px;
+    animation: pop .25s ease;
+    text-align:center;
+  }
+  @keyframes pop{
+    0%{ transform: scale(.92); opacity:0; }
+    100%{ transform: scale(1); opacity:1; }
+  }
+  .popupTitle{
+    margin:0;
+    font-size: 22px;
+    font-weight: 1000;
+    letter-spacing:.2px;
+  }
+  .popupImg{
+    margin-top:12px;
+    width:150px;height:150px;object-fit:contain;
+    border-radius: 20px;
+    background:#fff;
+    border:1px solid rgba(46,46,46,.12);
+    box-shadow: 0 14px 30px rgba(46,46,46,.16);
+  }
+  .popupName{
+    margin:12px 0 0;
+    font-size:18px;
+    font-weight:1000;
+  }
+
+  .popupBtns{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+    margin-top:14px;
+    flex-wrap:wrap;
+  }
+  .btnPrimary{
+    background: rgba(46,46,46,.92);
+    color: var(--broken);
+    border-color: rgba(46,46,46,.92);
+  }
+  .btnGhost{
+    background: rgba(255,255,255,.85);
+  }
+
+  /* Shuffle overlay */
+  .shuffling .box{
+    animation: shuffleShake .42s ease-in-out infinite;
+    filter: blur(.2px) brightness(1.02);
+  }
+  @keyframes shuffleShake{
+    0%{ transform:translate(0,0) rotate(0deg); }
+    25%{ transform:translate(-3px,2px) rotate(-1.6deg); }
+    50%{ transform:translate(3px,-2px) rotate(1.6deg); }
+    75%{ transform:translate(-2px,-2px) rotate(-.9deg); }
+    100%{ transform:translate(0,0) rotate(0deg); }
+  }
+  .shuffleOverlay{
+    position:absolute;
+    inset:0;
+    background: rgba(247,245,240,.78);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    font-size:18px;
+    font-weight:1000;
+    color:var(--charcoal);
+    backdrop-filter: blur(6px);
+    z-index:10;
+    border-radius: var(--radius);
+    pointer-events:none;
+    border:1px dashed rgba(46,46,46,.18);
+  }
+  .dots{ display:inline-flex; gap:6px; align-items:center; }
+  .dot{
+    width:9px;height:9px;border-radius:999px;
+    background: var(--charcoal);
+    opacity:.22;
+    animation: dotPulse 1s infinite;
+  }
+  .dot:nth-child(2){ animation-delay:.15s; }
+  .dot:nth-child(3){ animation-delay:.3s; }
+  @keyframes dotPulse{
+    0%,100%{ opacity:.22; transform:translateY(0); }
+    50%{ opacity:.9; transform:translateY(-4px); }
+  }
+
+  /* Admin */
+  .adminShell{
+    width:min(1040px, 94vw);
+    margin: 24px auto 40px;
+  }
+  .adminCard{
+    background: rgba(255,255,255,.72);
+    border:1px solid rgba(46,46,46,.10);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+    padding: 16px;
+  }
+  .adminHeader{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .adminHeader h2{
+    margin:0;
+    font-size:18px;
+    font-weight:1000;
+  }
+  .hint{
+    margin-top:6px;
+    font-size:12px;
+    font-weight:800;
+    opacity:.75;
+    line-height:1.35;
+  }
+  .adminBtns{ display:flex; gap:8px; flex-wrap:wrap; }
+
+  .sectionTitle{
+    margin:14px 0 8px;
+    font-size:13px;
+    font-weight:1000;
+    opacity:.9;
+    letter-spacing:.2px;
+  }
+
+  .titleList{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .titleRow{
+    display:grid;
+    grid-template-columns: 1fr auto auto;
+    gap:10px;
+    align-items:center;
+    padding:10px;
+    border-radius: 16px;
+    background: rgba(247,245,240,.92);
+    border:1px solid rgba(46,46,46,.12);
+  }
+  .in{
+    width:100%;
+    padding:10px 12px;
+    border-radius: 14px;
+    border:1px solid rgba(46,46,46,.18);
+    font-weight:900;
+    background: rgba(255,255,255,.9);
+    color:var(--charcoal);
+  }
+  .miniTag{
+    font-size:11px;
+    font-weight:1000;
+    padding:6px 10px;
+    border-radius:999px;
+    border:1px solid rgba(46,46,46,.16);
+    background: rgba(216,195,165,.20);
+    cursor:pointer;
+    user-select:none;
+  }
+  .miniTag.active{
+    background: rgba(46,46,46,.92);
+    color: var(--broken);
+    border-color: rgba(46,46,46,.92);
+  }
+  .danger{
+    background: rgba(231, 76, 60, .12);
+    border-color: rgba(231, 76, 60, .35);
+    color: #b42318;
+  }
+
+  .tabs{ display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+  .tab{
+    padding:10px 12px;
+    border-radius:999px;
+    border:1px solid rgba(46,46,46,.16);
+    cursor:pointer;
+    font-weight:1000;
+    background: rgba(247,245,240,.92);
+  }
+  .tab.active{
+    background: rgba(46,46,46,.92);
+    color: var(--broken);
+    border-color: rgba(46,46,46,.92);
+  }
+
+  .rows{ margin-top:12px; display:flex; flex-direction:column; gap:10px; }
+
+  .row{
+    display:grid;
+    grid-template-columns: 110px 1fr 320px;
+    gap:10px;
+    align-items:center;
+    padding:10px;
+    border-radius: 16px;
+    background: rgba(247,245,240,.92);
+    border:1px solid rgba(46,46,46,.12);
+  }
+  .thumb{
+    width:110px;height:70px;
+    border-radius: 14px;
+    background: rgba(46,46,46,.06);
+    display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+    border:1px solid rgba(46,46,46,.10);
+  }
+  .thumb img{ width:100%;height:100%;object-fit:contain; }
+
+  .rightPack{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    justify-content:flex-end;
+    flex-wrap:wrap;
+  }
+  .countWrap{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:4px;
+    min-width:120px;
+  }
+  .countLabel{
+    font-size:12px;
+    font-weight:1000;
+    opacity:.85;
+  }
+  .countHint{
+    font-size:12px;
+    font-weight:1000;
+    opacity:.75;
+  }
+  .count{
+    width:120px;
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px solid rgba(46,46,46,.18);
+    font-weight:1000;
+    text-align:center;
+    background: rgba(255,255,255,.9);
+  }
+  .del{
+    border:1px solid rgba(231, 76, 60, .35);
+    border-radius:999px;
+    padding:10px 12px;
+    cursor:pointer;
+    font-weight:1000;
+    background: rgba(231, 76, 60, .10);
+    color:#b42318;
+  }
+
+  .footerNote{
+    margin-top:10px;
+    font-size:12px;
+    font-weight:850;
+    opacity:.76;
+    line-height:1.45;
+  }
+</style>
+</head>
+<body>
+
+<!-- OVERLAY UI -->
+<div class="wrap" id="overlayUI" style="display:none;">
+  <div class="hero">
+    <h1 class="title" id="titleText">FUN SURPRISE BOX <span class="pill" id="modePill">Mode: HEMAT (1R)</span></h1>
+    <p class="sub" id="subText">Klik salah satu kotak untuk menentukan hadiah.</p>
+
+    <div class="controls">
+      <div class="mode" role="tablist" aria-label="Mode">
+        <button class="btn active" data-mode="hemat" type="button">Hemat</button>
+        <button class="btn" data-mode="royal" type="button">Royal</button>
+        <button class="btn" data-mode="tajir" type="button">Tajir</button>
+      </div>
+
+      <button class="btn" id="shuffleBtn" type="button">Shuffle</button>
+      <button class="btn" id="resetBtn" type="button">Reset</button>
+      <button class="btn" id="nextTitleBtn" type="button" title="Ganti judul (ambil dari list judul admin)">Next Title</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="grid" id="grid"></div>
+  </div>
+</div>
+
+<!-- POPUP -->
+<div class="popup" id="popup" aria-hidden="true">
+  <div class="popupContent" role="dialog" aria-modal="true">
+    <h2 class="popupTitle">Congrats 🎉</h2>
+    <img id="popupImg" class="popupImg" alt="">
+    <div id="popupName" class="popupName"></div>
+    <div class="popupBtns">
+      <button class="btn btnPrimary" id="popupOkBtn" type="button">OK</button>
+      <button class="btn btnGhost" id="popupAgainBtn" type="button">Reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN UI -->
+<div class="adminShell" id="adminUI" style="display:none;">
+  <div class="adminCard">
+    <div class="adminHeader">
+      <div>
+        <h2>Admin Settings</h2>
+        <div class="hint">
+          Semua setting tersimpan di browser (LocalStorage).<br>
+          Buka overlay normal tanpa <b>?admin=1</b>.
+        </div>
+      </div>
+      <div class="adminBtns">
+        <button class="btn" id="addTitleBtn" type="button">+ Tambah Judul</button>
+        <button class="btn" id="saveTitlesBtn" type="button">Save Judul</button>
+        <button class="btn" id="addItemBtn" type="button">+ Tambah Hadiah</button>
+        <button class="btn btnPrimary" id="saveBtn" type="button">Save Hadiah</button>
+        <button class="btn" id="exportBtn" type="button">Export</button>
+        <button class="btn" id="importBtn" type="button">Import</button>
+        <button class="btn danger" id="resetAllBtn" type="button">Reset Default</button>
+      </div>
+    </div>
+
+    <div class="sectionTitle">Judul Overlay (bisa ganti-ganti)</div>
+    <div class="titleList" id="titleList"></div>
+
+    <div class="sectionTitle" style="margin-top:16px;">Hadiah (Gambar + Rarity)</div>
+    <div class="tabs">
+      <div class="tab active" data-mode="hemat">HEMAT</div>
+      <div class="tab" data-mode="royal">ROYAL</div>
+      <div class="tab" data-mode="tajir">TAJIR</div>
+    </div>
+
+    <div class="rows" id="rows"></div>
+
+    <div class="footerNote">
+      • Set <b>Jumlah (rarity)</b> = berapa kotak yang berisi hadiah ini. Total tiap mode harus = <b>15</b>.<br>
+      • Disarankan gambar kecil (misal 256×256, &lt; 200KB) biar ringan di Live Studio.
+    </div>
+  </div>
+</div>
+
+<script>
+/** ========= DATA ========= */
+const DEFAULT_CONFIG = {
+  titles: {
+    activeIndex: 0,
+    list: ["FUN SURPRISE BOX", "SURPRISE BOX", "LUCKY BOX"]
+  },
+  gifts: {
+    hemat: [
+      { name:"Coin 50", count:5, img:null },
+      { name:"Candy", count:5, img:null },
+      { name:"Sticker", count:4, img:null },
+      { name:"Bonus", count:1, img:null }
+    ],
+    royal: [
+      { name:"Coin 300", count:6, img:null },
+      { name:"Gem 10", count:5, img:null },
+      { name:"Royal Pack", count:3, img:null },
+      { name:"Lucky Spin", count:1, img:null }
+    ],
+    tajir: [
+      { name:"Coin 1000", count:7, img:null },
+      { name:"Gem 30", count:5, img:null },
+      { name:"Mega Box", count:2, img:null },
+      { name:"SECRET", count:1, img:null }
+    ]
+  }
+};
+
+const PRICE = { hemat:"1R", royal:"5R", tajir:"10R" };
+const STORAGE_KEY = "elegant_fun_box_v1";
+
+function deepClone(x){ return JSON.parse(JSON.stringify(x)); }
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return deepClone(DEFAULT_CONFIG);
+    const parsed = JSON.parse(raw);
+
+    // Merge safely (keep defaults if missing)
+    const st = deepClone(DEFAULT_CONFIG);
+    if(parsed?.titles?.list?.length) st.titles.list = parsed.titles.list;
+    if(Number.isInteger(parsed?.titles?.activeIndex)) st.titles.activeIndex = parsed.titles.activeIndex;
+    if(parsed?.gifts) st.gifts = Object.assign(st.gifts, parsed.gifts);
+    return st;
+  }catch(e){
+    return deepClone(DEFAULT_CONFIG);
+  }
+}
+function saveState(st){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(st));
+}
+
+let STATE = loadState();
+
+/** ========= HELPERS ========= */
+function fisherYatesShuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function makeEmojiDataUrl(emoji){
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256">
+      <rect width="100%" height="100%" rx="40" ry="40" fill="white"/>
+      <text x="50%" y="58%" font-size="140" text-anchor="middle" dominant-baseline="middle">${emoji}</text>
+    </svg>`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+function escapeHtml(str){
+  return String(str)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+function escapeAttr(str){
+  return String(str)
+    .replaceAll('"',"&quot;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;");
+}
+function clampInt(v, min, max){
+  const n = parseInt(v ?? "0", 10);
+  if(Number.isNaN(n)) return min;
+  return Math.min(max, Math.max(min, n));
+}
+
+/** ========= TITLE SYSTEM ========= */
+const titleText = document.getElementById("titleText");
+const nextTitleBtn = document.getElementById("nextTitleBtn");
+
+function getActiveTitle(){
+  const list = STATE.titles.list?.length ? STATE.titles.list : ["FUN SURPRISE BOX"];
+  const idx = clampInt(STATE.titles.activeIndex, 0, list.length-1);
+  return { list, idx, text: list[idx] || "FUN SURPRISE BOX" };
+}
+function applyTitle(){
+  const { text } = getActiveTitle();
+  // Keep pill element at the end
+  const pill = document.getElementById("modePill");
+  titleText.textContent = text + " ";
+  titleText.appendChild(pill);
+}
+function nextTitle(){
+  const { list, idx } = getActiveTitle();
+  STATE.titles.activeIndex = (idx + 1) % list.length;
+  saveState(STATE);
+  applyTitle();
+}
+
+/** ========= OVERLAY GAME ========= */
+const overlayUI = document.getElementById("overlayUI");
+const adminUI = document.getElementById("adminUI");
+
+const grid = document.getElementById("grid");
+const popup = document.getElementById("popup");
+const popupImg = document.getElementById("popupImg");
+const popupName = document.getElementById("popupName");
+const popupOkBtn = document.getElementById("popupOkBtn");
+const popupAgainBtn = document.getElementById("popupAgainBtn");
+const modePill = document.getElementById("modePill");
+
+const resetBtn = document.getElementById("resetBtn");
+const shuffleBtn = document.getElementById("shuffleBtn");
+const modeBtns = document.querySelectorAll(".mode [data-mode]");
+
+let mode = "hemat";
+let slots = [];
+let pickedIndex = null;
+let isRevealing = false;
+let isShuffling = false;
+
+const STAGGER_MS = 70;
+const POPUP_DELAY_MS = 240;
+const SHUFFLE_ANIM_MS = 1100;
+
+function buildSlotsFromConfig(modeKey){
+  const items = STATE.gifts[modeKey] || [];
+  const expanded = [];
+  for(const it of items){
+    const c = Math.max(0, parseInt(it.count || 0, 10));
+    for(let k=0;k<c;k++){
+      expanded.push({ name: it.name || "Hadiah", img: it.img || null });
+    }
+  }
+  while(expanded.length < 15) expanded.push({ name:"?", img:null });
+  while(expanded.length > 15) expanded.pop();
+  return fisherYatesShuffle(expanded);
+}
+
+function enableControls(enabled){
+  resetBtn.disabled = !enabled;
+  shuffleBtn.disabled = !enabled;
+  nextTitleBtn.disabled = !enabled;
+  modeBtns.forEach(b => b.disabled = !enabled);
+}
+
+function setMode(newMode){
+  if(isShuffling || isRevealing) return;
+  mode = newMode;
+  modeBtns.forEach(b => b.classList.toggle("active", b.dataset.mode === newMode));
+  modePill.textContent = `Mode: ${newMode.toUpperCase()} (${PRICE[newMode]})`;
+  resetRound();
+}
+
+function resetRound(){
+  pickedIndex = null;
+  isRevealing = false;
+  isShuffling = false;
+  enableControls(true);
+  slots = buildSlotsFromConfig(mode);
+  render(false);
+}
+
+function shuffleOnly(){
+  if(isRevealing || pickedIndex !== null || isShuffling) return;
+
+  isShuffling = true;
+  enableControls(false);
+
+  render(false);
+
+  const overlay = document.createElement("div");
+  overlay.className = "shuffleOverlay";
+  overlay.innerHTML = `Shuffling <span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>`;
+  grid.appendChild(overlay);
+  grid.classList.add("shuffling");
+
+  setTimeout(() => {
+    slots = fisherYatesShuffle(slots);
+    grid.classList.remove("shuffling");
+    overlay.remove();
+
+    render(false);
+    enableControls(true);
+    isShuffling = false;
+  }, SHUFFLE_ANIM_MS);
+}
+
+function openPopup(prize){
+  popupImg.src = prize.img || makeEmojiDataUrl("🎁");
+  popupName.textContent = prize.name || "Hadiah!";
+  popup.style.display = "flex";
+  popup.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modal-open");
+}
+function closePopup(){
+  popup.style.display = "none";
+  popup.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("modal-open");
+}
+
+function pick(i){
+  if(pickedIndex !== null || isRevealing || isShuffling) return;
+  pickedIndex = i;
+  isRevealing = true;
+  enableControls(false);
+
+  render(true);
+
+  const totalTime = (15 * STAGGER_MS) + 520;
+  setTimeout(() => {
+    openPopup(slots[pickedIndex]);
+    enableControls(true);
+  }, totalTime + POPUP_DELAY_MS);
+}
+
+function render(reveal){
+  grid.innerHTML = "";
+  for(let i=0;i<15;i++){
+    const div = document.createElement("div");
+    div.className = "box";
+    if(isRevealing || isShuffling) div.classList.add("disabled");
+    if(reveal) div.classList.add("revealed");
+    if(pickedIndex === i) div.classList.add("picked");
+    div.style.setProperty("--d", (i * STAGGER_MS) + "ms");
+
+    const prize = slots[i];
+    const imgSrc = prize?.img || makeEmojiDataUrl("🎁");
+
+    div.innerHTML = `
+      <div class="tag">PICK</div>
+      <div class="num">${i+1}</div>
+      <div class="gift">
+        <img class="giftImg" src="${escapeAttr(imgSrc)}" alt="">
+        <div class="giftName">${escapeHtml(prize?.name || "Hadiah")}</div>
+      </div>
+    `;
+    div.onclick = () => pick(i);
+    grid.appendChild(div);
+  }
+}
+
+popupOkBtn.addEventListener("click", closePopup);
+popupAgainBtn.addEventListener("click", () => { closePopup(); resetRound(); });
+popup.addEventListener("click", (e) => { if(e.target === popup) closePopup(); });
+window.addEventListener("keydown", (e) => { if(e.key === "Escape" && popup.style.display === "flex") closePopup(); });
+
+nextTitleBtn.addEventListener("click", nextTitle);
+resetBtn.addEventListener("click", resetRound);
+shuffleBtn.addEventListener("click", shuffleOnly);
+modeBtns.forEach(btn => btn.addEventListener("click", () => setMode(btn.dataset.mode)));
+
+/** ========= ADMIN ========= */
+const titleListEl = document.getElementById("titleList");
+const addTitleBtn = document.getElementById("addTitleBtn");
+const saveTitlesBtn = document.getElementById("saveTitlesBtn");
+
+const rowsEl = document.getElementById("rows");
+const tabEls = document.querySelectorAll(".tab");
+const addItemBtn = document.getElementById("addItemBtn");
+const saveBtn = document.getElementById("saveBtn");
+const exportBtn = document.getElementById("exportBtn");
+const importBtn = document.getElementById("importBtn");
+const resetAllBtn = document.getElementById("resetAllBtn");
+
+let adminMode = "hemat";
+
+function fileToDataUrl(file){
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result));
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+function adminSetMode(m){
+  adminMode = m;
+  tabEls.forEach(t => t.classList.toggle("active", t.dataset.mode === m));
+  adminRenderGifts();
+}
+
+function adminRenderTitles(){
+  titleListEl.innerHTML = "";
+  const { list, idx } = getActiveTitle();
+
+  list.forEach((t, i) => {
+    const row = document.createElement("div");
+    row.className = "titleRow";
+
+    const input = document.createElement("input");
+    input.className = "in";
+    input.placeholder = "Judul overlay (contoh: FUN SURPRISE BOX)";
+    input.value = t;
+
+    const active = document.createElement("div");
+    active.className = "miniTag" + (i === idx ? " active" : "");
+    active.textContent = (i === idx) ? "ACTIVE" : "Set Active";
+
+    const del = document.createElement("button");
+    del.className = "del";
+    del.textContent = "Hapus";
+
+    input.addEventListener("input", () => {
+      STATE.titles.list[i] = input.value;
+    });
+
+    active.addEventListener("click", () => {
+      STATE.titles.activeIndex = i;
+      adminRenderTitles();
+    });
+
+    del.addEventListener("click", () => {
+      if((STATE.titles.list?.length || 0) <= 1){
+        alert("Minimal harus ada 1 judul.");
+        return;
+      }
+      STATE.titles.list.splice(i, 1);
+      STATE.titles.activeIndex = Math.min(STATE.titles.activeIndex, STATE.titles.list.length - 1);
+      adminRenderTitles();
+    });
+
+    row.appendChild(input);
+    row.appendChild(active);
+    row.appendChild(del);
+    titleListEl.appendChild(row);
+  });
+}
+
+function adminRenderGifts(){
+  rowsEl.innerHTML = "";
+  const items = STATE.gifts[adminMode] || [];
+
+  items.forEach((it, idx) => {
+    const row = document.createElement("div");
+    row.className = "row";
+
+    const thumb = document.createElement("div");
+    thumb.className = "thumb";
+    const img = document.createElement("img");
+    img.src = it.img || makeEmojiDataUrl("🎁");
+    thumb.appendChild(img);
+
+    const nameWrap = document.createElement("div");
+    const nameInput = document.createElement("input");
+    nameInput.className = "in";
+    nameInput.placeholder = "Nama hadiah (contoh: Coin 50)";
+    nameInput.value = it.name || "";
+    const mini = document.createElement("div");
+    mini.className = "hint";
+    mini.style.margin = "8px 0 0";
+    mini.textContent = "Upload gambar atau biarkan default 🎁";
+    nameWrap.appendChild(nameInput);
+    nameWrap.appendChild(mini);
+
+    const file = document.createElement("input");
+    file.type = "file";
+    file.accept = "image/*";
+    file.style.width = "140px";
+
+    const del = document.createElement("button");
+    del.className = "del";
+    del.textContent = "Hapus";
+
+    const countInput = document.createElement("input");
+    countInput.className = "count";
+    countInput.type = "number";
+    countInput.min = "0";
+    countInput.max = "15";
+    countInput.step = "1";
+    countInput.value = String(it.count ?? 0);
+
+    const countWrap = document.createElement("div");
+    countWrap.className = "countWrap";
+
+    const countLabel = document.createElement("div");
+    countLabel.className = "countLabel";
+    countLabel.textContent = "Jumlah (rarity)";
+
+    const countHint = document.createElement("div");
+    countHint.className = "countHint";
+    const pct0 = Math.round(((parseInt(countInput.value||"0",10)) / 15) * 100);
+    countHint.textContent = `${countInput.value}/15 ≈ ${pct0}%`;
+
+    countWrap.appendChild(countLabel);
+    countWrap.appendChild(countInput);
+    countWrap.appendChild(countHint);
+
+    const rightPack = document.createElement("div");
+    rightPack.className = "rightPack";
+    rightPack.appendChild(countWrap);
+    rightPack.appendChild(file);
+    rightPack.appendChild(del);
+
+    nameInput.addEventListener("input", () => {
+      STATE.gifts[adminMode][idx].name = nameInput.value;
+    });
+
+    countInput.addEventListener("input", () => {
+      STATE.gifts[adminMode][idx].count = parseInt(countInput.value || "0", 10);
+      const pct = Math.round(((parseInt(countInput.value||"0",10)) / 15) * 100);
+      countHint.textContent = `${countInput.value}/15 ≈ ${pct}%`;
+    });
+
+    file.addEventListener("change", async () => {
+      const f = file.files?.[0];
+      if(!f) return;
+      const dataUrl = await fileToDataUrl(f);
+      STATE.gifts[adminMode][idx].img = dataUrl;
+      img.src = dataUrl;
+    });
+
+    del.addEventListener("click", () => {
+      STATE.gifts[adminMode].splice(idx, 1);
+      adminRenderGifts();
+    });
+
+    row.appendChild(thumb);
+    row.appendChild(nameWrap);
+    row.appendChild(rightPack);
+    rowsEl.appendChild(row);
+  });
+
+  const total = (STATE.gifts[adminMode] || []).reduce((s,it)=>s + (parseInt(it.count||0,10)||0), 0);
+  const info = document.createElement("div");
+  info.className = "footerNote";
+  info.innerHTML = `Total kotak untuk mode <b>${adminMode.toUpperCase()}</b>: <b>${total}</b> (harus <b>15</b>).`;
+  rowsEl.appendChild(info);
+}
+
+function validateAll(){
+  const modes = ["hemat","royal","tajir"];
+  const errs = [];
+  for(const m of modes){
+    const total = (STATE.gifts[m]||[]).reduce((s,it)=>s + (parseInt(it.count||0,10)||0), 0);
+    if(total !== 15) errs.push(`${m.toUpperCase()} total ${total} (harus 15)`);
+  }
+  // titles: remove blanks
+  const cleaned = (STATE.titles.list || []).map(x => String(x||"").trim()).filter(Boolean);
+  if(!cleaned.length) errs.push("Judul overlay minimal 1 (tidak boleh kosong)");
+  return { errs, cleaned };
+}
+
+addTitleBtn.addEventListener("click", () => {
+  STATE.titles.list = STATE.titles.list || [];
+  STATE.titles.list.push("JUDUL BARU");
+  adminRenderTitles();
+});
+
+saveTitlesBtn.addEventListener("click", () => {
+  const { errs, cleaned } = validateAll();
+  if(errs.length){
+    alert("Belum bisa Save:\n- " + errs.join("\n- "));
+    return;
+  }
+  STATE.titles.list = cleaned;
+  STATE.titles.activeIndex = Math.min(clampInt(STATE.titles.activeIndex, 0, 9999), STATE.titles.list.length - 1);
+  saveState(STATE);
+  alert("Judul tersimpan!");
+  adminRenderTitles();
+});
+
+addItemBtn.addEventListener("click", () => {
+  STATE.gifts[adminMode] = STATE.gifts[adminMode] || [];
+  STATE.gifts[adminMode].push({ name:"Hadiah Baru", count:1, img:null });
+  adminRenderGifts();
+});
+
+saveBtn.addEventListener("click", () => {
+  const { errs, cleaned } = validateAll();
+  if(errs.length){
+    alert("Belum bisa Save:\n- " + errs.join("\n- "));
+    return;
+  }
+  STATE.titles.list = cleaned;
+  STATE.titles.activeIndex = Math.min(clampInt(STATE.titles.activeIndex, 0, 9999), STATE.titles.list.length - 1);
+  saveState(STATE);
+  alert("Saved! Sekarang buka overlay normal (hapus ?admin=1).");
+});
+
+exportBtn.addEventListener("click", async () => {
+  try{
+    await navigator.clipboard.writeText(JSON.stringify(STATE));
+    alert("Export berhasil: settings dicopy ke clipboard.\nSimpan di Notes/WA sebagai backup.");
+  }catch{
+    alert("Gagal copy otomatis. Coba browser lain atau copy manual.");
+  }
+});
+
+importBtn.addEventListener("click", () => {
+  const raw = prompt("Paste JSON hasil Export di sini:");
+  if(!raw) return;
+  try{
+    const cfg = JSON.parse(raw);
+    // minimal merge
+    STATE = loadState();
+    if(cfg?.titles?.list?.length) STATE.titles.list = cfg.titles.list;
+    if(Number.isInteger(cfg?.titles?.activeIndex)) STATE.titles.activeIndex = cfg.titles.activeIndex;
+    if(cfg?.gifts) STATE.gifts = Object.assign(STATE.gifts, cfg.gifts);
+    saveState(STATE);
+    adminRenderTitles();
+    adminRenderGifts();
+    alert("Import OK!");
+  }catch(e){
+    alert("JSON tidak valid.");
+  }
+});
+
+resetAllBtn.addEventListener("click", () => {
+  if(!confirm("Reset ke default? Ini menghapus semua setting di browser.")) return;
+  STATE = deepClone(DEFAULT_CONFIG);
+  saveState(STATE);
+  adminMode = "hemat";
+  tabEls.forEach(t => t.classList.toggle("active", t.dataset.mode === "hemat"));
+  adminRenderTitles();
+  adminRenderGifts();
+});
+
+/** ========= BOOT ========= */
+const isAdmin = new URLSearchParams(location.search).get("admin") === "1";
+
+tabEls.forEach(t => t.addEventListener("click", () => adminSetMode(t.dataset.mode)));
+
+if(isAdmin){
+  overlayUI.style.display = "none";
+  adminUI.style.display = "block";
+  adminRenderTitles();
+  adminRenderGifts();
+}else{
+  adminUI.style.display = "none";
+  overlayUI.style.display = "block";
+  applyTitle();
+  setMode("hemat");
+  resetRound();
+}
+</script>
+</body>
+</html>
